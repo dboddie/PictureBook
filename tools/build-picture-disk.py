@@ -58,7 +58,7 @@ if __name__ == "__main__":
     picture_data = []
     i = 1
     for name in picture_files:
-        picture_data.append(("PICT%i" % i, 0x2ec0, 0x2ec0, open(name, "rb").read()))
+        picture_data.append(("PICT%i" % i, 0x3dc0, 0x3dc0, open(name, "rb").read()))
         slides_list.append("?&FE08=&FF:?&FE09=&FF")
         slides_list.append("CLS")
         slides_list.append("*LOAD PICT%i" % i)

@@ -15,8 +15,8 @@
 
 .alias gap_row 160
 
-.alias palette_fe08 $2ec0
-.alias palette_fe09 $2f60
+.alias palette_fe08 $3dc0
+.alias palette_fe09 $3e60
 
 .alias long_field 105
 .alias short_field 104

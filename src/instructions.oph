@@ -94,9 +94,9 @@ jsr $fff4
 ; Change to MODE 1 without telling the OS.
 lda #$88
 sta $fe07
-lda #$00
+lda #$80
 sta $fe02
-lda #$18
+lda #$1f
 sta $fe03
 
 ldx #<slides
