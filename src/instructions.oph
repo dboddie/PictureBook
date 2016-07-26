@@ -65,20 +65,6 @@ sta $70
 lda #>slideshow_prepare
 sta $71
 
-ldy #65
-nloop:
-    lda #88
-    jsr $ffee
-    tya
-    jsr $ffee
-    lda #10
-    jsr $ffee
-    lda #13
-    jsr $ffee
-    iny
-    cpy #97
-    bne nloop
-
 ldy #0
 prepare_loop:
     lda ($70),y
@@ -110,5 +96,5 @@ slides:
 
 slideshow_prepare:  ; Clear the screen and create a text window
 ;.byte 12            ; CLS
-.byte 28,0,31,31,20
+.byte 28,0,31,39,22
 slideshow_prepare_end:

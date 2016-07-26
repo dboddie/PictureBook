@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 3:
     
-        sys.stderr.write("Usage: %s <picture data files> ... <new SSD file>\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s (<picture data file> <text file>) ... <new SSD file>\n" % sys.argv[0])
         sys.exit(1)
     
     args = sys.argv[:]
@@ -45,11 +45,17 @@ if __name__ == "__main__":
     open("palette.rom", "wb").write(rom)
     print "Written palette.rom"
     
-    # Collect the pictures in the data directory.
-    picture_files = args[1:-1]
-    picture_files.sort()
+    # Collect the picture and text files in the data directory.
+    data_files = args[1:-1]
+    picture_files = []
+    text_files = []
+    
+    for i in range(0, len(data_files), 2):
+        picture_files.append(data_files[i])
+        text_files.append(data_files[i + 1])
     
     boot_text = []
+    boot_text.append("*LOAD DISPLAY")
     # Run the instructions viewer.
     boot_text.append("*/ INSTR")
 
@@ -57,11 +63,14 @@ if __name__ == "__main__":
     
     picture_data = []
     i = 1
-    for name in picture_files:
+    for name, text_name in zip(picture_files, text_files):
         picture_data.append(("PICT%i" % i, 0x3dc0, 0x3dc0, open(name, "rb").read()))
+        picture_data.append(("TEXT%i" % i, 0x1900, 0x1900, open(text_name, "rb").read()))
         slides_list.append("?&FE08=&FF:?&FE09=&FF")
         slides_list.append("CLS")
         slides_list.append("*LOAD PICT%i" % i)
+        slides_list.append("*LOAD TEXT%i" % i)
+        slides_list.append("CALL &E00")
         slides_list.append("*SHOW")
         i += 1
     
@@ -74,7 +83,8 @@ if __name__ == "__main__":
         image_license_text = "Include information about your images in a file called LICENSE-images."
     
     # Assemble the files.
-    assemble = [("src/instructions.oph", "INSTR", 0x1900)]
+    assemble = [("src/instructions.oph", "INSTR", 0x1900),
+                ("src/display_text.oph", "DISPLAY", 0x0e00)]
     files = [("!BOOT", 0x0000, 0x0000, "\r".join(boot_text) + "\r"),
              ("LICENSE", 0x0000, 0x0000, image_license_text),
              ("COPYING", 0x0000, 0x0000, __doc__.replace("\n", "\r")),
