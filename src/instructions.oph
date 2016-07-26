@@ -54,6 +54,10 @@ cursor_loop:
     dex
     bpl cursor_loop
 
+lda #229        ; Disable ESCAPE handling.
+ldx #1
+jsr $fff4
+
 lda #$ff
 sta $fe08
 sta $fe09
@@ -96,5 +100,5 @@ slides:
 
 slideshow_prepare:  ; Clear the screen and create a text window
 ;.byte 12            ; CLS
-.byte 28,0,31,39,22
+.byte 28,0,31,39,21
 slideshow_prepare_end:

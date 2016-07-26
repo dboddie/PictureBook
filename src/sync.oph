@@ -36,13 +36,13 @@ copyright_offset:
 .byte 1
 
 ; Title string
-.byte "Palette test", 0
+.byte "Picture Book", 0
 
 ; Version string
-.byte "1.2", 0
+.byte "1.0", 0
 
 copyright_string:
-.byte "(C) 2015 David Boddie", 0
+.byte "(C) 2016 David Boddie", 0
 
 ; Second processor relocation address
 .byte 0, $80, 0, 0
@@ -319,6 +319,10 @@ show:
     lda #$11                ; 2 c
     sta $fe09               ; 4 c
 
+
+    jsr keyboard_scan
+
+
     ; Wait for the vsync bit to be set.
 
     lda #$04                ; 2 c
@@ -340,7 +344,7 @@ show:
     eor #1                  ; 2 c
     sta $72                 ; 3 c
 
-    ldx #157    ; SPACE
+    ldx #143                ; ESCAPE
     jsr check_key
     bne main_loop
 
@@ -368,6 +372,38 @@ check_key:      ; x = 255 - key_number
     jsr $fff4
     cpy #255    ; Perform the check for a pressed key here.
     rts
+
+keyboard_scan:
+
+    lda #121
+    ldx #0
+    jsr $fff4
+
+    cpx #255
+    beq keyboard_scan_exit
+    lda keys_ref,x
+    cmp #0
+    beq keyboard_scan_exit
+    pha
+    jsr enable_vdu
+    pla
+    jsr $ffee
+    jsr disable_vdu
+
+    keyboard_scan_exit:
+    rts
+
+enable_vdu:
+
+    lda #3
+    ldx #0
+    jmp $fff4
+
+disable_vdu:
+
+    lda #3
+    ldx #2
+    jmp $fff4
 
 calibrate:
 
@@ -400,5 +436,14 @@ calibrate:
 
 ; fe08: B3 B2 B1 B0 G3 G2 X  X
 ; fe09: X  X  G1 G0 R3 R2 R1 R0
+keys_ref:
 border_fe08: .byte $ff,$0f,$00,$00,$00,$00,$0f,$ff
 border_fe09: .byte $ff,$ff,$0f,$00,$00,$0f,$ff,$ff
+
+.byte "Q345", 0, "8", 0, "-^", 0,0,0,0,0,0,0
+.byte 0, "WET7I90_", 0,0,0,0,0,0,0
+.byte "12DR6UOP[", 0,0,0,0,0,0,0
+.byte 0, "AXFYJK@:", 0,0,0,0,0,0,0
+.byte 0, "SCGHNL;]", 0,0,0,0,0,0,0
+.byte 0, "Z VBM,./", 0,0,0,0,0,0,0
+.byte 0,0,0,0,0,0,0,0, "\\", 0,0,0,0,0,0,0
