@@ -1,0 +1,400 @@
+; Copyright (C) 2015 David Boddie <david@boddie.org.uk>
+;
+; This program is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+;
+; This program is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+.alias last_row 159
+
+.alias palette_fe08 $2ec0
+.alias palette_fe09 $2f60
+
+.alias long_field 105
+.alias short_field 104
+
+.org $8000
+rom_start:
+.byte 0, 0, 0
+jmp service_entry
+
+; ROM type
+.byte $82       ; 6502 code (2), language ($40), service ($80)
+
+copyright_offset:
+.byte [copyright_string - rom_start - 1]
+
+; Version
+.byte 1
+
+; Title string
+.byte "Palette test", 0
+
+; Version string
+.byte "1.2", 0
+
+copyright_string:
+.byte "(C) 2015 David Boddie", 0
+
+; Second processor relocation address
+.byte 0, $80, 0, 0
+
+service_entry:
+
+    cmp #4
+    beq service_command
+
+    service_entry_exit:
+    clc
+    rts
+
+commands:
+.byte <show_name, >show_name
+
+show_name: .byte "SHOW", 13
+
+routines:
+.byte <show, >show
+
+service_command:
+
+    tya                         ; push Y and X registers onto the stack
+    pha
+    txa
+    pha
+
+    clc
+    tya         ; Store the address of the command line in an new address that
+    adc $f2     ; can used zero-based post-indexed addressing.
+    sta $74
+    lda $f3
+    adc #0
+    sta $75
+    clc
+
+    ldx #0
+    service_command_loop:
+
+        lda commands,x
+        sta $72
+        lda [commands + 1],x
+        sta $73
+
+        ldy #0
+
+        service_command_test_loop:
+
+            lda ($72),y
+            cmp ($74),y
+            bne service_command_next
+            iny
+            cmp #13
+            bne service_command_test_loop
+
+        txa
+        lda routines,x
+        sta $72
+        lda [routines + 1],x
+        sta $73
+
+        jmp ($72)
+
+        service_command_next:
+
+        inx
+        inx
+        cpx #2
+        bne service_command_loop
+
+    service_command_not_found:
+    pla                         ; pop Y and X registers off the stack
+    tax
+    pla
+    tay
+    lda #4                      ; restore A
+    rts
+
+show:
+
+    ; Check the system in use.
+
+    lda #129
+    ldx #0
+    ldy #255
+    jsr $fff4
+    cpx #1
+    beq electron_os
+    
+    jmp service_command_claimed
+
+    electron_os:
+
+    sei
+
+    lda #$ff
+    sta $fe08
+    sta $fe09
+
+    ; Clear the vsync interrupt bit.
+
+    lda #$10
+    sta $fe05
+
+    ; Wait until the vsync bit is cleared.
+
+    lda #$04
+    wait0:
+    bit $fe00
+    bne wait0
+
+    ; Wait until the vsync bit is set, indicating the start of a new frame.
+
+    wait1:
+    bit $fe00
+    beq wait1
+
+    lda #$10
+    sta $fe05
+
+    calibration:
+
+        jsr calibrate
+        stx $70
+    
+        jsr calibrate
+        stx $71
+
+        lda $70
+        cmp $71
+        beq calibration
+
+    bcs highest_first
+
+    lda #short_field        ; The first value is the lowest, so store a
+    sta $70                 ; slightly lower value than the second value in
+    lda #long_field         ; the first slot.
+    sta $71
+    bcc pre_loop
+
+    highest_first:
+
+    lda #long_field         ; The first value is the highest, so store a
+    sta $70                 ; slightly lower value in the second slot.
+    lda #short_field
+    sta $71
+
+    pre_loop:
+
+    ldx #0
+    stx $72
+
+    main_loop:
+
+    ; Set the palette for the first scanline.
+
+    lda palette_fe08        ; 4 c
+    sta $fe08               ; 4 c
+    lda palette_fe09        ; 4 c
+    sta $fe09               ; 4 c
+                            ; 16 c
+
+    start:
+
+    ldx $72                 ; 3 c
+    lda $70,x               ; 4 c
+    tax                     ; 2 c
+
+    wait_loop:
+
+        ; Wait for around 32us (64 cycles) per half scanline.
+
+        ldy #11             ; 2 c
+        delay0:
+            dey             ; 2 c
+            bne delay0      ; 3 c
+
+        nop                 ; 2 c
+        dex                 ; 2 c
+        bne wait_loop       ; 3 c
+                            ; (11 * 5) + 2 + 7 = 64
+                            ; (104 * 64) + 2 = 6658
+
+    ldx #0                  ; 2 c
+
+                            ; 15 + 16 + 10 + 6658 + 2 = 6701 ~= 52.35 scanlines
+                            ; with 37 cycles until RAM read = 6738 = 52.64 scanlines
+                            ; The cycles for the remaining scanlines are used
+                            ; by the instructions after synchronisation at the
+                            ; end of the loop.
+    loop:
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        cpx #last_row       ; 2 c
+        beq end_loop        ; 3 c
+        inx                 ; 2 c
+
+        ; Accessing memory at this point should cause the CPU to block.
+
+        lda palette_fe08,x  ; 4 ~c
+        sta $fe08           ; 4 c
+        lda palette_fe09,x  ; 4 ~c
+        sta $fe09           ; 4 c
+
+        jmp loop            ; 3 c
+                            ; 56 c
+
+    end_loop:
+
+    lda #$ff                ; 2 c
+    sta $fe08               ; 4 c
+    sta $fe09               ; 4 c
+    ldx #8                  ; 2 c
+
+    post_image_loop:
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        lda palette_fe08    ; 4 c
+
+        dex                 ; 2 c
+        beq mode_change     ; 3 c
+        jmp post_image_loop ; 3 c
+                            ; 56 c
+
+    mode_change:
+    ; Change to MODE 4.
+    lda #$a0
+    sta $fe07
+
+    lda #$10                ; 2 c
+    sta $fe08               ; 4 c
+    lda #$11                ; 2 c
+    sta $fe09               ; 4 c
+
+    ; Wait for the vsync bit to be set.
+
+    lda #$04                ; 2 c
+    wait2:
+    bit $fe00               ; 4 c
+    beq wait2               ; 3 c
+
+    ; Change to MODE 1.
+    lda #$88
+    sta $fe07
+
+    ; The following instructions up to the end of the loop take about 4
+    ; scanlines to execute.
+
+    lda #$10                ; 2 c
+    sta $fe05               ; 4 c
+
+    lda $72                 ; 3 c
+    eor #1                  ; 2 c
+    sta $72                 ; 3 c
+
+    ldx #157    ; SPACE
+    jsr check_key
+    bne main_loop
+
+    cli
+
+    ; Restore the palette.
+    lda #$73
+    sta $fe08
+    lda #$f1
+    sta $fe09
+
+service_command_claimed:
+
+    pla                         ; pop Y and X registers off the stack
+    tax
+    pla
+    tay
+    lda #0                      ; claim service command
+    rts
+
+check_key:      ; x = 255 - key_number
+
+    lda #129    ; returns y=255 or 0
+    ldy #255
+    jsr $fff4
+    cpy #255    ; Perform the check for a pressed key here.
+    rts
+
+calibrate:
+
+    ; Count the number of half scanlines to the end of the display. This will
+    ; wrap around in an 8-bit value.
+
+    lda #$04                ; 2 c
+    ldx #0                  ; 2 c
+    calibration_loop:
+
+        ldy #11             ; 2 c
+        delay1:
+            dey             ; 2 c
+            bne delay1      ; 3 c
+
+        inx                 ; 2 c
+
+        ; Continue until the vsync interrupt bit is set again.
+
+        bit $fe00           ; 4 c
+        beq calibration_loop; 3 c
+                            ; (11 * 5) + 2 + 9 = 66
+
+    ; Clear the vsync interrupt bit.
+
+    lda #$10
+    sta $fe05
+
+    rts

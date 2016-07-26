@@ -1,0 +1,110 @@
+; Copyright (C) 2015 David Boddie <david@boddie.org.uk>
+;
+; This program is free software: you can redistribute it and/or modify
+; it under the terms of the GNU General Public License as published by
+; the Free Software Foundation, either version 3 of the License, or
+; (at your option) any later version.
+;
+; This program is distributed in the hope that it will be useful,
+; but WITHOUT ANY WARRANTY; without even the implied warranty of
+; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+; GNU General Public License for more details.
+;
+; You should have received a copy of the GNU General Public License
+; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+.org $1900
+
+lda #129
+ldx #0
+ldy #255
+jsr $fff4
+cpx #1
+beq electron_os
+
+brk
+.byte 1
+.byte "The palette ROM only works on an Electron. Sorry!"
+brk
+
+electron_os:
+
+; Disable printer and ADC.
+
+lda #163
+ldx #128
+ldy #1
+jsr $fff4
+
+; Change mode.
+
+lda #22
+jsr $ffee
+lda #4
+jsr $ffee
+
+lda #23         ; disable flashing cursor
+jsr $ffee
+lda #1
+jsr $ffee
+ldx #7
+cursor_loop:
+    lda #0
+    jsr $ffee
+    dex
+    bpl cursor_loop
+
+lda #$ff
+sta $fe08
+sta $fe09
+
+; Prepare to show pictures.
+
+lda #<slideshow_prepare
+sta $70
+lda #>slideshow_prepare
+sta $71
+
+ldy #65
+nloop:
+    tya
+    jsr $ffee
+    lda #10
+    jsr $ffee
+    iny
+    cpy #97
+    bne nloop
+
+ldy #0
+prepare_loop:
+    lda ($70),y
+    jsr $ffee
+    iny
+    cpy #[slideshow_prepare_end - slideshow_prepare]
+    bne prepare_loop
+
+lda #3          ; Disable VDU output.
+ldx #2
+jsr $fff4
+
+; Change to MODE 1 without telling the OS.
+lda #$88
+sta $fe07
+lda #$00
+sta $fe02
+lda #$18
+sta $fe03
+
+ldx #<slides
+ldy #>slides
+jsr $fff7
+
+rts
+
+slides:
+.byte "*EXEC SLIDES", 13, 0
+
+slideshow_prepare:  ; Clear the screen and create a text window
+;.byte 12            ; CLS
+.byte 28,0,31,31,20
+slideshow_prepare_end:
