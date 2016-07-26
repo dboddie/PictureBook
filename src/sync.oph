@@ -13,7 +13,7 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-.alias last_row 159
+.alias gap_row 160
 
 .alias palette_fe08 $2ec0
 .alias palette_fe09 $2f60
@@ -236,27 +236,27 @@ show:
                             ; end of the loop.
     loop:
 
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-
-        cpx #last_row       ; 2 c
+        cpx #gap_row        ; 2 c
         beq end_loop        ; 3 c
         inx                 ; 2 c
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
 
         ; Accessing memory at this point should cause the CPU to block.
 
@@ -270,28 +270,43 @@ show:
 
     end_loop:
 
-    ; We need to wait a while before changing mode.
+    lda #$ff                ; 2 c
+    sta $fe08               ; 4 c
+    sta $fe09               ; 4 c
+    ldx #0                  ; 2 c
 
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-
-    ; Block until the end of the scanline.
-    lda palette_fe08        ; 4 c
-
-    ldx #3                  ; 2 c
     pre_change_loop:
 
+        cpx #8              ; 2 c
+        beq mode_change     ; 3 c
+        inx                 ; 2 c
+
         nop                 ; 2 c
         nop                 ; 2 c
         nop                 ; 2 c
         nop                 ; 2 c
         nop                 ; 2 c
 
-        dex                 ; 2 c
-        bne pre_change_loop ; 3 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        lda palette_fe08    ; 4 c
+
+        lda border_fe08,x   ; 4 ~c
+        sta $fe08           ; 4 c
+        lda border_fe09,x   ; 4 ~c
+        sta $fe09           ; 4 c
+
+        ; Accessing memory at this point should cause the CPU to block.
+
+        jmp pre_change_loop ; 3 c
+                            ; 56 c
 
     mode_change:
     ; Change to MODE 4.
@@ -299,9 +314,9 @@ show:
     sta $fe07
 
     ; Change the palette.
-    lda #$ef                ; 2 c
+    lda #$10                ; 2 c
     sta $fe08               ; 4 c
-    lda #$ee                ; 2 c
+    lda #$11                ; 2 c
     sta $fe09               ; 4 c
 
     ; Wait for the vsync bit to be set.
@@ -382,3 +397,8 @@ calibrate:
     sta $fe05
 
     rts
+
+; fe08: B3 B2 B1 B0 G3 G2 X  X
+; fe09: X  X  G1 G0 R3 R2 R1 R0
+border_fe08: .byte $ff,$0f,$00,$00,$00,$00,$0f,$ff
+border_fe09: .byte $ff,$ff,$0f,$00,$00,$0f,$ff,$ff
