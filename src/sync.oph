@@ -270,24 +270,16 @@ show:
 
     end_loop:
 
-    ; We need to wait a while.
-    ldx #3                  ; 2 c
-
-    post_image_loop:
+    ; We need to wait a while before changing mode.
 
         nop                 ; 2 c
         nop                 ; 2 c
         nop                 ; 2 c
         nop                 ; 2 c
+        nop                 ; 2 c
 
-        dex                 ; 2 c
-        bne post_image_loop ; 3 c
-
+    ; Block until the end of the scanline.
     lda palette_fe08        ; 4 c
-    lda #$10                ; 2 c
-    sta $fe08               ; 4 c
-    lda #$11                ; 2 c
-    sta $fe09               ; 4 c
 
     ldx #3                  ; 2 c
     pre_change_loop:
@@ -306,9 +298,10 @@ show:
     lda #$a0
     sta $fe07
 
-    lda #$10                ; 2 c
+    ; Change the palette.
+    lda #$ef                ; 2 c
     sta $fe08               ; 4 c
-    lda #$11                ; 2 c
+    lda #$ee                ; 2 c
     sta $fe09               ; 4 c
 
     ; Wait for the vsync bit to be set.

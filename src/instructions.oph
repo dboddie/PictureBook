@@ -67,6 +67,8 @@ sta $71
 
 ldy #65
 nloop:
+    lda #88
+    jsr $ffee
     tya
     jsr $ffee
     lda #10
