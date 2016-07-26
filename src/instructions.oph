@@ -71,6 +71,8 @@ nloop:
     jsr $ffee
     lda #10
     jsr $ffee
+    lda #13
+    jsr $ffee
     iny
     cpy #97
     bne nloop

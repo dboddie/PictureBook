@@ -270,10 +270,8 @@ show:
 
     end_loop:
 
-    lda #$ff                ; 2 c
-    sta $fe08               ; 4 c
-    sta $fe09               ; 4 c
-    ldx #8                  ; 2 c
+    ; We need to wait a while.
+    ldx #3                  ; 2 c
 
     post_image_loop:
 
@@ -281,34 +279,27 @@ show:
         nop                 ; 2 c
         nop                 ; 2 c
         nop                 ; 2 c
-        nop                 ; 2 c
-
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-        nop                 ; 2 c
-
-        nop                 ; 2 c
-        nop                 ; 2 c
-        lda palette_fe08    ; 4 c
 
         dex                 ; 2 c
-        beq mode_change     ; 3 c
-        jmp post_image_loop ; 3 c
-                            ; 56 c
+        bne post_image_loop ; 3 c
+
+    lda palette_fe08        ; 4 c
+    lda #$10                ; 2 c
+    sta $fe08               ; 4 c
+    lda #$11                ; 2 c
+    sta $fe09               ; 4 c
+
+    ldx #3                  ; 2 c
+    pre_change_loop:
+
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+        nop                 ; 2 c
+
+        dex                 ; 2 c
+        bne pre_change_loop ; 3 c
 
     mode_change:
     ; Change to MODE 4.
