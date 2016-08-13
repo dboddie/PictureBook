@@ -19,6 +19,9 @@ lda #3          ; Enable VDU output.
 ldx #0
 jsr $fff4
 
+lda #12         ; CLS
+jsr $ffee
+
 ldy #0
 sty $70
 lda #$19
