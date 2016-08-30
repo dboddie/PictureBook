@@ -346,8 +346,10 @@ show:
 
     ldx #143                ; ESCAPE
     jsr check_key
-    bne main_loop
+    beq end_main_loop
+    jmp main_loop
 
+    end_main_loop:
     cli
 
     ; Restore the palette.
