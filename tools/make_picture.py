@@ -132,7 +132,7 @@ if __name__ == "__main__":
         im = Image.open(file_name)
         if rotate:
             im = im.rotate(270)
-        if im.mode == "P":
+        if im.mode != "RGB":
             im = im.convert("RGB")
         
         if im.size[0] > 320:

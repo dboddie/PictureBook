@@ -145,7 +145,8 @@ show:
 
     ; Clear the vsync interrupt bit.
 
-    lda #$10
+    lda $f4
+    ora #$10
     sta $fe05
 
     ; Wait until the vsync bit is cleared.
@@ -161,7 +162,8 @@ show:
     bit $fe00
     beq wait1
 
-    lda #$10
+    lda $f4
+    ora #$10
     sta $fe05
 
     calibration:
@@ -337,7 +339,8 @@ show:
     ; The following instructions up to the end of the loop take about 4
     ; scanlines to execute.
 
-    lda #$10                ; 2 c
+    lda $f4                 ; 3 c
+    ora #$10                ; 2 c
     sta $fe05               ; 4 c
 
     lda $72                 ; 3 c
@@ -431,7 +434,8 @@ calibrate:
 
     ; Clear the vsync interrupt bit.
 
-    lda #$10
+    lda $f4
+    ora #$10
     sta $fe05
 
     rts
